@@ -555,7 +555,7 @@ textarea.in2{resize:none;min-height:5.6em;line-height:1.55;text-align:center;ove
     dust.classList.add('on');
     var lt=0;
     (function f(t){
-      if(!document.hidden&&t-lt>=32){lt=t;c.clearRect(0,0,W,H);
+      if(!document.hidden&&!window.__dustOff&&t-lt>=40){lt=t;c.clearRect(0,0,W,H);
         P.forEach(function(q){q.y-=q.v*2;if(q.y<-.02){q.y=1.02;q.x=Math.random()}
           var x=(q.x+Math.sin(t/3000+q.p)*.02)*W,a=q.a*(.5+.5*Math.sin(t/900+q.p));
           c.beginPath();c.arc(x,q.y*H,q.r,0,6.283);c.fillStyle='rgba(201,160,98,'+a.toFixed(3)+')';c.fill()})}
@@ -653,6 +653,9 @@ textarea.in2{resize:none;min-height:5.6em;line-height:1.55;text-align:center;ove
       slots=[[37,28],[63,28],[37,50],[63,50],[37,72],[63,72]],
       rnd=function(a,b){return a+Math.random()*(b-a)};
   slots.sort(function(){return Math.random()-.5});
+  var dec=[].slice.call(tray.querySelectorAll('img')).map(function(im){im.decoding='async';return im.decode?im.decode().catch(function(){}):Promise.resolve()});
+  function go(){var done=false,f=function(){if(done)return;done=true;requestAnimationFrame(function(){tray.classList.add('go')})};
+    Promise.all(dec).then(f);setTimeout(f,2500)}
   cards.forEach(function(c,i){
     var s=slots[i%slots.length],side=i%2?1:-1,st=c.style;
     st.setProperty('--x',(s[0]+rnd(-1.5,1.5)).toFixed(1)+'%');
@@ -665,7 +668,7 @@ textarea.in2{resize:none;min-height:5.6em;line-height:1.55;text-align:center;ove
     st.setProperty('--z',i+1);
   });
   var io=new IntersectionObserver(function(es){es.forEach(function(e){
-    if(e.isIntersecting){tray.classList.add('go');io.disconnect()}})},{threshold:.4});
+    if(e.isIntersecting){io.disconnect();go()}})},{threshold:.25});
   io.observe(tray);
 })();
 </script>
@@ -746,7 +749,7 @@ html.ar #fog i{animation-play-state:paused!important}
 <style>
 /* ===== النسخة العربية ===== */
 :root{--ar-head:"Aref Ruqaa","Amiri","Noto Naskh Arabic",serif;--ar-body:"Amiri","Noto Naskh Arabic",serif}
-html[lang=ar] #stage #stage *,html[lang=ar] #rest #rest *,html[lang=ar] #toast{letter-spacing:0!important;font-style:normal!important;text-transform:none!important}
+html[lang=ar] #stage *:not(#z),html[lang=ar] #rest *:not(#z),html[lang=ar] #toast{letter-spacing:0!important;font-style:normal!important;text-transform:none!important}
 html[lang=ar] #stage #stage .eb,html[lang=ar] #stage #stage .sb,html[lang=ar] #stage #stage .sb2{font-family:var(--ar-head)!important}
 #names{direction:rtl;padding-top:8svh}
 #names .n{font-family:"Aref Ruqaa","Great Vibes",serif;font-weight:700;font-size:clamp(2.4rem,11.5vw,3.6rem);line-height:1.5}
@@ -757,6 +760,7 @@ html[lang=ar] #stage #stage .eb,html[lang=ar] #stage #stage .sb,html[lang=ar] #s
 #hint{font-family:var(--ar-head);font-size:1.45rem;line-height:1.8}
 #more{font-family:var(--ar-head);font-size:1.1rem}
 .nm{direction:rtl}
+.nm b,.t.in .nm b{transition:none!important;letter-spacing:0!important}
 .nm b{font-family:"Aref Ruqaa","Great Vibes",serif;font-weight:700;font-size:1.55em;display:inline-block}
 .nm i{font-family:var(--ar-head);font-size:1.1em;margin:0 .35em}
 #rest #p5t .nm b{font-size:1.35em}
@@ -781,6 +785,25 @@ select.in2{background-position:left 1em center}
 .rmc{right:auto;left:.9em;font-family:var(--ar-body);font-size:.75em}
 #bar{transform-origin:right}.pr::after{transform-origin:right}
 #toast{font-family:var(--ar-body);font-size:1.1rem}
+</style>
+<style id="perf">
+/* ===== تحسين الأداء: كل الحركات على الـ GPU (opacity/transform بس) ===== */
+/* الزخارف: ثابتة بدل رسم الخطوط (كان بيعمل إعادة رسم لعشرات الـ paths كل فريم) */
+.dw{stroke-dashoffset:0!important;transition:none!important}
+.lf{fill-opacity:.16!important;transition:none!important}
+.pp{opacity:1!important;transition:none!important}
+/* اللمعان: مرة واحدة بس وبعد الظهور، مش لا نهائي */
+.dn{animation:none!important}
+.t.in .dn{animation:glint 5s linear 1 .6s!important}
+.sec.fr.on .ttl{animation:glint 6s linear 1 .8s!important}
+/* الإطار: ظهور بـ opacity + scale بدل clip-path */
+.sec.fr::before{clip-path:none!important;transform:scale(.95);will-change:opacity,transform;transition:opacity .9s ease,transform 1.3s cubic-bezier(.2,.7,.2,1)!important}
+.sec.fr.on::before{clip-path:none!important;transform:none}
+/* صور الصينية: طبقات جاهزة + مسار حركة واحد متطابق */
+#rest #p5 .ph{opacity:.01;will-change:transform,opacity;backface-visibility:hidden;contain:layout paint}
+#rest #p5 .tray.go .ph{opacity:1;transform:translate(-50%,-50%) translateX(0) rotate(var(--r))}
+#rest #p5 .tray,#rest #p5 .env,#rest #p6 .vsh{will-change:transform,opacity}
+@media(prefers-reduced-motion:reduce){#rest #p5 .ph{opacity:1}}
 </style>
 <button id="autoBtn" type="button" aria-label="إيقاف السكرول التلقائي"><svg class="i-pause" viewBox="0 0 24 24" aria-hidden="true"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg><svg class="i-play" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 5.5v13a1 1 0 0 0 1.5.86l10.5-6.5a1 1 0 0 0 0-1.72L9.5 4.64A1 1 0 0 0 8 5.5z"/></svg></button>
 <script>
@@ -887,6 +910,13 @@ select.in2{background-position:left 1em center}
     btn.classList.add('show');state='wait';ui();arm();
     setTimeout(function(){if(state==='wait')play()},DELAY);
   });
+})();
+</script>
+<script>
+/* إيقاف جزيئات الغلاف لما الغلاف يخرج من الشاشة */
+(function(){var st=document.getElementById('stage'),d=document.getElementById('dust');
+  if(!st||!d||!window.IntersectionObserver)return;
+  new IntersectionObserver(function(es){var on=es[0].isIntersecting;window.__dustOff=!on;d.style.display=on?'':'none'}).observe(st);
 })();
 </script>
 </body>
